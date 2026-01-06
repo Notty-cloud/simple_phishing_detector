@@ -1,3 +1,48 @@
+# Simple Phishing Detector
+
+Lightweight repository for extracting phishing-related features from email text and filtering suspicious emails.
+
+Contents
+- `src/create_sample_data.py` — (existing) helper to create sample email data.
+- `src/extract_features.py` — extracts features into `data/processed/email_features.csv`.
+- `src/keywords.py` — (existing) suspicious keyword lists and helpers.
+- `src/filter_suspicious_emails.py` — filters rows containing suspicious keywords and writes `data/processed/suspicious_keywords.csv`.
+- `src/logging_config.py` — centralized logging helper (creates `logs/` and per-module log files).
+
+Quickstart
+
+1. Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+2. Create or place your raw emails at `data/raw/emails.csv` (columns: `text`, optional `label`).
+
+3. Extract features:
+
+```bash
+python src/extract_features.py
+# output: data/processed/email_features.csv
+```
+
+4. Filter suspicious emails (script also runs automatically and writes a CSV):
+
+```bash
+python src/filter_suspicious_emails.py
+# output: data/processed/suspicious_keywords.csv
+```
+
+Logging
+- Log files are written to `logs/` using per-module log filenames, e.g. `logs/extract_features.log` and `logs/filter_suspicious_emails.log`.
+
+Notes
+- `extract_features.py` uses `src/keywords.py` to detect suspicious keywords. Adjust `text_column` and `label_column` variables inside the script if your CSV uses different column names.
+- The filter script looks for `suspicious_keywords_found` and `suspicious_keyword_count` columns in `data/processed/email_features.csv`.
+
+License & Next steps
+- Add a LICENSE file if you plan to publish this repository publicly.
+- I can open a PR, create a release tag, or add CI if you want — tell me which.
 # Email Phishing Feature Extractor
 
 A beginner-friendly Python project that extracts features from email datasets to identify potential phishing attempts.
