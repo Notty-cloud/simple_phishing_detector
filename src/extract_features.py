@@ -8,6 +8,9 @@ import re
 from collections import Counter
 import os
 from keywords import get_all_keywords
+from logging_config import get_logger
+
+logger = get_logger("extract_features")
 
 class EmailFeatureExtractor:
     """Extract features from email text for phishing detection"""
@@ -117,25 +120,23 @@ class EmailFeatureExtractor:
 def load_dataset(file_path):
     """Load the email dataset from CSV file"""
     try:
-        print(f"Loading dataset from: {file_path}")
+        logger.info("Loading dataset from: %s", file_path)
         df = pd.read_csv(file_path)
-        print(f"✓ Successfully loaded {len(df)} emails")
-        print(f"✓ Columns found: {list(df.columns)}")
+        logger.info("Successfully loaded %d emails", len(df))
+        logger.info("Columns found: %s", list(df.columns))
         return df
     except FileNotFoundError:
-        print(f"❌ Error: File not found at {file_path}")
-        print("Please make sure you've downloaded the dataset and placed it in the correct folder.")
+        logger.error("File not found at %s", file_path)
+        logger.error("Please make sure you've downloaded the dataset and placed it in the correct folder.")
         return None
     except Exception as e:
-        print(f"❌ Error loading dataset: {e}")
+        logger.exception("Error loading dataset: %s", e)
         return None
 
 
 def process_dataset(df, text_column='text', label_column='label'):
     """Process entire dataset and extract features for all emails"""
-    print("\n" + "="*50)
-    print("Starting feature extraction...")
-    print("="*50)
+    logger.info("Starting feature extraction...")
     
     extractor = EmailFeatureExtractor()
     
@@ -149,12 +150,12 @@ def process_dataset(df, text_column='text', label_column='label'):
         
         # Show progress every 100 emails
         if (idx + 1) % 100 == 0:
-            print(f"Processed {idx + 1}/{len(df)} emails...")
+            logger.info("Processed %d/%d emails...", idx + 1, len(df))
     
     # Convert to DataFrame
     features_df = pd.DataFrame(all_features)
     
-    print(f"\n✓ Completed! Extracted features from {len(features_df)} emails")
+    logger.info("Completed feature extraction. Extracted features from %d emails", len(features_df))
     return features_df
 
 
@@ -163,37 +164,33 @@ def save_features(features_df, output_path):
     try:
         # Create directory if it doesn't exist
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        
         features_df.to_csv(output_path, index=False)
-        print(f"\n✓ Features saved to: {output_path}")
+        logger.info("Features saved to: %s", output_path)
         return True
     except Exception as e:
-        print(f"❌ Error saving features: {e}")
+        logger.exception("Error saving features: %s", e)
         return False
 
 
 def display_statistics(features_df):
     """Display summary statistics of extracted features"""
-    print("\n" + "="*50)
-    print("DATASET STATISTICS")
-    print("="*50)
-    
-    print(f"\nTotal emails processed: {len(features_df)}")
+    logger.info("DATASET STATISTICS")
+    logger.info("Total emails processed: %d", len(features_df))
     
     # Check if we have labels
     if 'is_phishing' in features_df.columns:
         phishing_count = features_df['is_phishing'].sum()
         legitimate_count = len(features_df) - phishing_count
-        print(f"Phishing emails: {phishing_count}")
-        print(f"Legitimate emails: {legitimate_count}")
+        logger.info("Phishing emails: %d", phishing_count)
+        logger.info("Legitimate emails: %d", legitimate_count)
     
     # Feature statistics
-    print("\n--- Feature Statistics ---")
-    print(f"Average text length: {features_df['text_length'].mean():.0f} characters")
-    print(f"Average word count: {features_df['word_count'].mean():.0f} words")
-    print(f"Average URLs per email: {features_df['url_count'].mean():.2f}")
-    print(f"Average suspicious keywords: {features_df['suspicious_keyword_count'].mean():.2f}")
-    print(f"Average capital letter %: {features_df['capital_letter_percent'].mean():.2f}%")
+    logger.info("Feature Statistics: avg_text_length=%0.0f, avg_word_count=%0.0f, avg_urls=%0.2f, avg_suspicious_keywords=%0.2f, avg_caps=%%0.2f",
+                features_df['text_length'].mean(),
+                features_df['word_count'].mean(),
+                features_df['url_count'].mean(),
+                features_df['suspicious_keyword_count'].mean(),
+                features_df['capital_letter_percent'].mean())
     
     # Most common suspicious keywords
     all_keywords = []
@@ -203,18 +200,16 @@ def display_statistics(features_df):
     
     if all_keywords:
         keyword_counts = Counter(all_keywords)
-        print("\n--- Top 10 Suspicious Keywords Found ---")
+        logger.info("Top 10 Suspicious Keywords Found:")
         for keyword, count in keyword_counts.most_common(10):
-            print(f"  '{keyword}': {count} times")
+            logger.info("  '%s': %d times", keyword, count)
     
     print("\n" + "="*50)
 
 
 def main():
     """Main function to run the feature extraction pipeline"""
-    print("="*50)
-    print("EMAIL PHISHING FEATURE EXTRACTOR")
-    print("="*50)
+    logger.info("EMAIL PHISHING FEATURE EXTRACTOR")
     
     # Define file paths
     input_file = 'data/raw/emails.csv'  # Change this to your dataset filename
@@ -226,19 +221,18 @@ def main():
     text_column = 'text'      # Column containing email text
     label_column = 'label'    # Column containing spam/phishing label
     
-    print(f"\nLooking for dataset at: {input_file}")
-    print(f"Text column: '{text_column}'")
-    print(f"Label column: '{label_column}'")
+    logger.info("Looking for dataset at: %s", input_file)
+    logger.info("Text column: '%s'", text_column)
+    logger.info("Label column: '%s'", label_column)
     
     # Step 1: Load dataset
     df = load_dataset(input_file)
     if df is None:
-        print("\n⚠️  Please check your dataset path and try again.")
+        logger.error("Please check your dataset path and try again.")
         return
     
     # Step 2: Show sample of raw data
-    print("\n--- Sample of Raw Data ---")
-    print(df.head(3))
+    logger.info("Sample of raw data:\n%s", df.head(3).to_string(index=False))
     
     # Step 3: Process dataset
     features_df = process_dataset(df, text_column, label_column)
@@ -250,11 +244,8 @@ def main():
     display_statistics(features_df)
     
     # Step 6: Show sample of extracted features
-    print("\n--- Sample of Extracted Features ---")
-    print(features_df.head(3))
-    
-    print("\n✅ Feature extraction complete!")
-    print(f"Check the output file at: {output_file}")
+    logger.info("Sample of extracted features:\n%s", features_df.head(3).to_string(index=False))
+    logger.info("Feature extraction complete. Check the output file at: %s", output_file)
 
 
 if __name__ == "__main__":
